@@ -1,6 +1,8 @@
+import sys
 import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from providers.ethereum_provider import EthereumProvider
-from crypto_monitor import CryptoMonitor
+from src.crypto_monitor import CryptoMonitor
 from db.database_builder import DatabaseBuilder
 
 def main():
@@ -15,7 +17,7 @@ def main():
                 .database_type("duckdb") \
                 .build()
     monitor = CryptoMonitor(providers = providers, database = database)
-    
+
 
     monitor.parse_all_blocks()
     monitor.save_data_to_database()

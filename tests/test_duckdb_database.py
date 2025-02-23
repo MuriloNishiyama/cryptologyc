@@ -1,35 +1,46 @@
 import os
 import tempfile
 import duckdb
-import pandas as pd
 import unittest
 from src.db.duckdb_database import DuckDBDatabase
 
-class TestDuckDBDatabase(unittest.TestCase):
+class TestGetLastBlock(unittest.TestCase):
     def setUp(self):
         self.temp_db_fd, self.temp_db_path = tempfile.mkstemp(suffix=".db")
         os.close(self.temp_db_fd)
         if os.path.exists(self.temp_db_path):
             os.remove(self.temp_db_path)
         self.database = DuckDBDatabase(self.temp_db_path)
-        self.sample_dataframe = pd.DataFrame({'number': [1, 2], 'letter': ['a', 'b']})
-        self.table_name = "test_table"
+        with duckdb.connect(self.temp_db_path) as connection:
+            connection.execute("""
+                CREATE TABLE transactions (
+                    blockNumber INTEGER,
+                    currency VARCHAR
+                )
+            """)
+            connection.execute("""
+                INSERT INTO transactions VALUES (100, 'eth'), (200, 'eth'), (150, 'btc')
+            """)
 
-    def test_append_df_creates_table(self):
-        self.database.append_df(self.table_name, self.sample_dataframe)
-        connection = duckdb.connect(self.temp_db_path)
-        result_dataframe = connection.sql(f"SELECT * FROM {self.table_name}").df()
-        connection.close()
-        self.assertEqual(len(result_dataframe), len(self.sample_dataframe))
-        self.assertListEqual(list(result_dataframe.columns), list(self.sample_dataframe.columns))
+    def tearDown(self):
+        if os.path.exists(self.temp_db_path):
+            os.remove(self.temp_db_path)
 
-    def test_append_df_inserts_additional_rows(self):
-        self.database.append_df(self.table_name, self.sample_dataframe)
-        self.database.append_df(self.table_name, self.sample_dataframe)
-        connection = duckdb.connect(self.temp_db_path)
-        result_dataframe = connection.sql(f"SELECT * FROM {self.table_name}").df()
-        connection.close()
-        self.assertEqual(len(result_dataframe), 2 * len(self.sample_dataframe))
+    def test_get_last_block_existing_currency(self):
+        lastBlockETH = self.database.get_last_block('eth')
+        lastBlockBTC = self.database.get_last_block('btc')
+        self.assertEqual(lastBlockETH, 200)
+        self.assertEqual(lastBlockBTC, 150)
+
+    def test_get_last_block_nonexistent_currency(self):
+        lastBlockLTC = self.database.get_last_block('ltc')
+        self.assertIsNone(lastBlockLTC)
+
+    def test_get_last_block_no_transactions_table(self):
+        with duckdb.connect(self.temp_db_path) as connection:
+            connection.execute("DROP TABLE transactions")
+        lastBlockETH = self.database.get_last_block('eth')
+        self.assertIsNone(lastBlockETH)
 
 if __name__ == '__main__':
     unittest.main()

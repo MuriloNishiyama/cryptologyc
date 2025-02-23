@@ -1,5 +1,5 @@
 import pandas as pd
-from src.logger import logger
+from .logger import logger
 
 class CryptoMonitor:
     def __init__(self, providers: dict, database):
@@ -16,16 +16,34 @@ class CryptoMonitor:
     
     def parse_block(self, provider, block):
         return provider.parse_block(block)
+    
+    def __get_last_block_from_db(self, currency):
+        return self.database.get_last_block(currency=currency)
 
-    def parse_all_blocks(self):
+    def parse_all_blocks(self, try_to_recover_from_db : bool = True):
         for currency, provider in self.providers.items():
             logger.info(f"Capturing {currency} data...")
             if provider.last_parsed_block == 0:
-                initial_block = self.get_last_block(provider)
-                last_block = initial_block
+                if try_to_recover_from_db:
+                    initial_block = self.__get_last_block_from_db(currency = currency)
+                    logger.debug(initial_block)
+                    if initial_block is None:
+                        initial_block = self.get_last_block(provider)
+                        last_block = initial_block
+                    elif initial_block == provider.last_parsed_block:
+                        logger.info(f"No operations since last iteration. Block = {provider.last_parsed_block}")
+                        continue
+                    else:
+                        last_block = self.get_last_block(provider)
+                else:
+                    initial_block = self.get_last_block(provider)
+                    last_block = initial_block
             else:
                 initial_block = provider.last_parsed_block
                 last_block = self.get_last_block(provider)
+                if initial_block == last_block:
+                    logger.info(f"No operations since last iteration. Block = {provider.last_parsed_block}")
+                    continue
             for i in range(initial_block, last_block + 1,1):
                 self.transactions[provider] += self.parse_block(provider=provider, block = i).get("transactions")
 
