@@ -13,13 +13,22 @@ class TestGetLastBlock(unittest.TestCase):
         self.database = DuckDBDatabase(self.temp_db_path)
         with duckdb.connect(self.temp_db_path) as connection:
             connection.execute("""
-                CREATE TABLE transactions (
+                CREATE TABLE eth_transactions (
                     blockNumber INTEGER,
-                    currency VARCHAR
+                    network VARCHAR
                 )
             """)
             connection.execute("""
-                INSERT INTO transactions VALUES (100, 'eth'), (200, 'eth'), (150, 'btc')
+                CREATE TABLE btc_transactions (
+                    blockNumber INTEGER,
+                    network VARCHAR
+                )
+            """)
+            connection.execute("""
+                INSERT INTO eth_transactions VALUES (100, 'eth'), (200, 'eth')
+            """)
+            connection.execute("""
+                INSERT INTO btc_transactions VALUES (100, 'btc'), (150, 'btc')
             """)
 
     def tearDown(self):
@@ -38,7 +47,8 @@ class TestGetLastBlock(unittest.TestCase):
 
     def test_get_last_block_no_transactions_table(self):
         with duckdb.connect(self.temp_db_path) as connection:
-            connection.execute("DROP TABLE transactions")
+            connection.execute("DROP TABLE eth_transactions")
+            connection.execute("DROP TABLE btc_transactions")
         lastBlockETH = self.database.get_last_block('eth')
         self.assertIsNone(lastBlockETH)
 
