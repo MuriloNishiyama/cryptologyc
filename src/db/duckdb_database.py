@@ -12,14 +12,14 @@ class DuckDBDatabase(BaseDatabase):
         else:
             self.db_path = db_path
 
-    def get_last_block(self, currency):
+    def get_last_block(self, network):
         with duckdb.connect(self.db_path) as conn:
             try:
-                return conn.sql(f"SELECT MAX(blockNumber) FROM transactions WHERE currency = '{currency}'").fetchall()[0][0]
+                return conn.sql(f"SELECT MAX(blockNumber) FROM {network}_transactions").fetchall()[0][0]
             except IndexError:
                 return None
             except Exception as e:
-                if f"Table with name transactions does not exist!" in str(e):
+                if f"Table with name {network}_transactions does not exist!" in str(e):
                     return None
                 else:
                     raise Exception(e)

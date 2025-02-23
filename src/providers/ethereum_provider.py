@@ -7,7 +7,7 @@ class EthereumProvider(BlockchainProvider):
         self.last_parsed_block = 0
 
     @property
-    def currency(self) -> str:
+    def network(self) -> str:
         return "eth"
 
     def get_last_block(self):

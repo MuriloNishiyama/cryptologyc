@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 class BlockchainProvider(ABC):
     @property
     @abstractmethod
-    def currency(self) -> str:
+    def network(self) -> str:
         """The currency code"""
         pass
 
