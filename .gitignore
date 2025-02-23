@@ -1,2 +1,19 @@
 .env
 *.ipynb
+data/
+
+# Cache
+__pycache__/
+*.pyc
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.coverage
+.cache/
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*cache*/
+.pyc

@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from src.providers.ethereum_provider import EthereumProvider
-
+from src.logger import logger
 class TestEthereumProvider(unittest.TestCase):
     @patch("src.providers.ethereum_provider.Web3")
     def test_get_last_block(self, mock_web3):
