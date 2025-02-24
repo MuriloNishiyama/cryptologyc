@@ -28,7 +28,6 @@ class CryptoMonitor:
             if provider.last_parsed_block == 0:
                 if try_to_recover_from_db:
                     initial_block = self.__get_last_block_from_db(network = provider.network)
-                    logger.debug(initial_block)
                     if initial_block is None:
                         initial_block = self.get_last_block(provider)
                         last_block = initial_block

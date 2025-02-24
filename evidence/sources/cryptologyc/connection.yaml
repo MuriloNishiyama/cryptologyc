@@ -1,0 +1,5 @@
+# This file was automatically generated
+name: cryptologyc
+type: duckdb
+options:
+  filename: ../../../data/cryptologyc.db
