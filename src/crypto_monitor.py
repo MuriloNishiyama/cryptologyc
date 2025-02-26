@@ -83,12 +83,12 @@ class CryptoMonitor:
         logger.info("Saving all data into database...")
         dfs_transactions = self.get_transactions_dataframe()
         for provider, df_transactions in dfs_transactions.items():
-            self.database.append_df(table_name = f"{provider.network}_transactions", df_pd = df_transactions)
+            self.database.upsert_df(table_name = f"{provider.network}_transactions", df_pd = df_transactions, primary_keys = ["hash"])
             logger.debug(f"Saved {len(df_transactions.index)} transactions.")
 
         dfs_blocks = self.get_block_dataframe()
         for provider, df_blocks in dfs_blocks.items():
-            self.database.append_df(table_name = f"{provider.network}_blocks", df_pd = df_blocks)
+            self.database.upsert_df(table_name = f"{provider.network}_blocks", df_pd = df_blocks, primary_keys = ["block_id"])
             logger.debug(f"Saved {len(df_blocks.index)} blocks.")
 
         self.reset_variables()

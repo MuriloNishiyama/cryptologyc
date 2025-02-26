@@ -40,3 +40,20 @@ class DuckDBDatabase(BaseDatabase):
                     conn.sql(f"CREATE TABLE {table_name} AS SELECT * FROM df_pd")
                 else:
                     raise Exception(e)
+                
+    def upsert_df(self, table_name : str, df_pd : pd.DataFrame, primary_keys : list):
+        pk_used = f"concat({','.join(primary_keys)})" if len(primary_keys) > 1 else primary_keys[0]
+        with duckdb.connect(self.db_path) as conn:
+            conn.sql(f"DROP TABLE IF EXISTS {table_name}_staging")
+            try:
+                conn.sql(f"CREATE TABLE {table_name}_staging AS SELECT * FROM {table_name} LIMIT 0")
+            except:
+                pass
+            self.append_df(table_name = f"{table_name}_staging", df_pd = df_pd)
+            try:
+                conn.sql(f"insert into {table_name} select * From {table_name}_staging where {pk_used} not in (select {pk_used} from {table_name});  ")
+            except Exception as e:
+                print(e)
+                self.append_df(table_name = table_name, df_pd = df_pd)
+
+        
