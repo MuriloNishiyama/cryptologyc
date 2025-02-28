@@ -3,10 +3,12 @@ import tempfile
 import duckdb
 import unittest
 from src.db.duckdb_database import DuckDBDatabase
+import pandas as pd
 
 class TestGetLastBlock(unittest.TestCase):
     def setUp(self):
         self.temp_db_fd, self.temp_db_path = tempfile.mkstemp(suffix=".db")
+        self.db_path = self.temp_db_path
         os.close(self.temp_db_fd)
         if os.path.exists(self.temp_db_path):
             os.remove(self.temp_db_path)
@@ -51,6 +53,49 @@ class TestGetLastBlock(unittest.TestCase):
             connection.execute("DROP TABLE btc_transactions")
         lastBlockETH = self.database.get_last_block('eth')
         self.assertIsNone(lastBlockETH)
+
+    def test_append_df_creates_table_and_inserts_data(self):
+        df_initial = pd.DataFrame({
+            'id': [1, 2],
+            'value': [100, 200],
+            'extra': ['a', 'b']
+        })
+        table_name = "test_table"
+        self.database.append_df(table_name, df_initial)
+
+        with duckdb.connect(self.db_path) as conn:
+            result_df = conn.execute(f"SELECT * FROM {table_name}").fetchdf()
+
+        expected_columns = ['id', 'value', 'extra']
+        self.assertEqual(list(result_df.columns), expected_columns)
+        self.assertEqual(len(result_df), 2)
+        pd.testing.assert_frame_equal(result_df.reset_index(drop=True), df_initial[expected_columns])
+
+    def test_upsert_df_inserts_only_new_rows(self):
+        # Create initial target table data
+        df_initial = pd.DataFrame({
+            'id': [1, 2],
+            'value': [100, 200]
+        })
+        table_name = "test_table"
+        self.database.append_df(table_name, df_initial)
+
+        # Prepare new DataFrame with one duplicate (id 2) and one new (id 3)
+        df_new = pd.DataFrame({
+            'id': [2, 3],
+            'value': [250, 300]
+        })
+        primary_keys = ['id']
+        self.database.upsert_df(table_name, df_new, primary_keys)
+
+        with duckdb.connect(self.db_path) as conn:
+            result_df = conn.execute(f"SELECT * FROM {table_name} ORDER BY id").fetchdf()
+
+        expected_df = pd.DataFrame({
+            'id': [1, 2, 3],
+            'value': [100, 200, 300]
+        })
+        pd.testing.assert_frame_equal(result_df.reset_index(drop=True), expected_df)
 
 if __name__ == '__main__':
     unittest.main()
